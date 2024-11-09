@@ -10,19 +10,15 @@ ifeq ($(OS),Windows_NT)
 	MAIN_PATH = /tmp/bin/main.exe
 	SYNC_ASSETS_COMMAND =	@go run github.com/makiuchi-d/arelo@v1.13.1 \
 	--target "./public" \
-	--pattern "**/*.js" \
-	--pattern "**/*.css" \
 	--delay "100ms" \
 	--templ generate --notify-proxy
 else
 	MAIN_PATH = tmp/bin/main
 	SYNC_ASSETS_COMMAND =	@go run github.com/cosmtrek/air@v1.51.0 \
-	--build.cmd "templ generate --notify-proxy" \
 	--build.bin "true" \
 	--build.delay "100" \
 	--build.exclude_dir "" \
 	--build.include_dir "public" \
-	--build.include_ext "js,css" \
 	--screen.clear_on_rebuild true \
 	--log.main_only true
 endif

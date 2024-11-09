@@ -1,0 +1,1 @@
+## My template for starting a new golang app
