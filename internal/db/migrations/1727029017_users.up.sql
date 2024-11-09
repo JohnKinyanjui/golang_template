@@ -24,12 +24,3 @@ create index idx_users_email on users(google_uid);
 create index idx_auth_github_uid on users(github_uid);
 create index idx_auth_phone_number on users(phone_number);
 
--- teams
-create table wallet (
-    id uuid primary key default uuid_generate_v4(),
-    currency varchar(5) default 'KES',
-    created_at timestamp default current_timestamp not null,
-
-    -- 
-    user_id UUID not null unique references users(id)  
-);
