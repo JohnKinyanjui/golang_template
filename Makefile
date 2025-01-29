@@ -26,7 +26,7 @@ endif
 
 # run air to detect any go file changes to re-build and re-run the server.
 server:
-	@go run github.com/cosmtrek/air@v1.51.0 \
+	@air \
 		--build.cmd "go build --tags dev -o ${MAIN_PATH} ./cmd" \
 		--build.bin "${MAIN_PATH}" \
 		--build.delay "100" \

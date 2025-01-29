@@ -14,7 +14,7 @@ create table users (
     phone_number varchar(15) unique,
     password varchar(255),
     -- github token
-    github_username text default 'none'
+    github_username text default 'none',
     github_token text default 'none'
 );
 

@@ -1,29 +1,65 @@
 package auth_service
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"golang_template/internal/db"
+	"golang_template/pkg/middlewares"
+	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 )
 
-const githubTokenURL = "https://github.com/login/oauth/access_token"
-const githubAPIURL = "https://api.github.com"
+func ContinueWithGithub(code string) (map[string]string, error) {
+	log.Println("is code found: ", code)
 
-type GitHubOAuthTokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	TokenType    string `json:"token_type"`
-	Scope        string `json:"scope"`
-}
+	if code == "none" {
+		return nil, errors.New("code is not found")
+	}
+	var id string
 
-type GithubUser struct {
-	Id       int64  `json:"id"`
-	Picture  string `json:"avatar_url"`
-	UserName string `json:"name"`
-	FullName string `json:"login"`
-	Email    string `json:"email"`
+	t, err := exchangeCodeForToken(code)
+	if err != nil {
+		return nil, err
+	}
+
+	pr, err := fetchGitHubUser(t.AccessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	githubUid := fmt.Sprintf("%d", pr.Id)
+
+	ctx := context.Background()
+	err = db.PgConn.QueryRow(ctx, checkIfGithubAccountExists, githubUid).Scan(&id)
+	if err != nil {
+		err = db.PgConn.QueryRow(context.Background(), signUpGithubQuery,
+			pgx.NamedArgs{
+				"picture":      pr.Picture,
+				"full_name":    pr.FullName,
+				"email":        pr.Email,
+				"github_uid":   githubUid,
+				"github_token": t.RefreshToken,
+			}).
+			Scan(&id)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	token, err := middlewares.GenerateJWT(id)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{
+		"access_token": token,
+	}, nil
 }
 
 func exchangeCodeForToken(code string) (*GitHubOAuthTokenResponse, error) {
