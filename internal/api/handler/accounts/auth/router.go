@@ -12,10 +12,7 @@ func Handler(private, public *echo.Group) *AuthRouter {
 }
 
 func (rt *AuthRouter) Routes() {
-	rt.private.POST("/auth/token", rt.validateToken)
-
 	rt.public.POST("/auth/google", rt.continueWithGoogle)
 	rt.public.POST("/auth/email/signin", rt.continueWithEmail)
-	rt.public.POST("/auth/github/:code", rt.continueWithGithub)
 
 }

@@ -28,3 +28,36 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (GetUserRow, error)
 	err := row.Scan(&i.Picture, &i.FullName, &i.Email)
 	return i, err
 }
+
+const signInWithGoogle = `-- name: SignInWithGoogle :one
+select id from users where email = $1::text and google_uid = $2::text
+`
+
+type SignInWithGoogleParams struct {
+	Email     string `json:"email"`
+	GoogleUid string `json:"google_uid"`
+}
+
+func (q *Queries) SignInWithGoogle(ctx context.Context, arg SignInWithGoogleParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, signInWithGoogle, arg.Email, arg.GoogleUid)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const updateGoogleDetails = `-- name: UpdateGoogleDetails :one
+update users set email = $1::text , google_uid = $2::text where id = $3 returning id
+`
+
+type UpdateGoogleDetailsParams struct {
+	Email     string    `json:"email"`
+	GoogleUid string    `json:"google_uid"`
+	ID        uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateGoogleDetails(ctx context.Context, arg UpdateGoogleDetailsParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, updateGoogleDetails, arg.Email, arg.GoogleUid, arg.ID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}

@@ -1,48 +1,47 @@
 package auth_service
 
 import (
+	"context"
 	"errors"
-
-	"github.com/surrealdb/surrealdb.go"
+	"golang_template/internal/db"
+	query "golang_template/internal/db/generated"
+	"golang_template/pkg/middlewares"
 )
 
-func ContinueWithGoogle(token string) (string, error) {
+func ContinueWithGoogle(token string, params AuthParams) (string, error) {
 	if token == "none" {
 		return "", errors.New("token is not found")
 	}
 
-	// data, err := getUserInfo(token)
-	// if err != nil {
-	// 	return "", err
-	// }
+	dt, err := getUserInfo(token)
+	if err != nil {
+		return "", nil
+	}
 
-	// exists := checkIfUseExists(data["email"].(string))
-	// if exists {
-	// 	token, err := db.Conn.SignIn(&surrealdb.Auth{
-	// 		Namespace: "root",
-	// 		Database:  "root",
-	// 		Scope:     "root",
-	// 	})
-	// 	if err != nil {
-	// 		return "", err
-	// 	}
+	ctx := context.Background()
+	if params.Option == SignIn {
+		userId, err := db.Query.SignInWithGoogle(ctx, query.SignInWithGoogleParams{
+			Email:     dt["email"].(string),
+			GoogleUid: dt["google_uid"].(string),
+		})
+		if err != nil {
+			return "", err
+		}
 
-	// 	return token, nil
-	// }
+		return middlewares.GenerateJWT(userId.String())
 
-	// token, err = db.Conn.SignUp(&surrealdb.Auth{
-	// 	Namespace: "root",
-	// 	Database:  "root",
-	// 	Scope:     "root",
-	// })
-	// if err != nil {
-	// 	return "", err
-	// }
+	} else if params.Option == Update {
+		userId, err := db.Query.UpdateGoogleDetails(ctx, query.UpdateGoogleDetailsParams{
+			ID:        params.Id,
+			Email:     dt["email"].(string),
+			GoogleUid: dt["google_uid"].(string),
+		})
+		if err != nil {
+			return "", err
+		}
 
-	return token, nil
-}
+		return middlewares.GenerateJWT(userId.String())
+	}
 
-func ValidateToken(conn *surrealdb.DB) (interface{}, error) {
-
-	return nil, nil
+	return "", errors.New("auth options is not available")
 }
