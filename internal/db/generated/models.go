@@ -5,20 +5,233 @@
 package query
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type PropertySaleType string
+
+const (
+	PropertySaleTypeForSale PropertySaleType = "for_sale"
+	PropertySaleTypeForRent PropertySaleType = "for_rent"
+)
+
+func (e *PropertySaleType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PropertySaleType(s)
+	case string:
+		*e = PropertySaleType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PropertySaleType: %T", src)
+	}
+	return nil
+}
+
+type NullPropertySaleType struct {
+	PropertySaleType PropertySaleType `json:"property_sale_type"`
+	Valid            bool             `json:"valid"` // Valid is true if PropertySaleType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPropertySaleType) Scan(value interface{}) error {
+	if value == nil {
+		ns.PropertySaleType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PropertySaleType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPropertySaleType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PropertySaleType), nil
+}
+
+type PropertyStatus string
+
+const (
+	PropertyStatusAvailable PropertyStatus = "available"
+	PropertyStatusSold      PropertyStatus = "sold"
+	PropertyStatusRented    PropertyStatus = "rented"
+)
+
+func (e *PropertyStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PropertyStatus(s)
+	case string:
+		*e = PropertyStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PropertyStatus: %T", src)
+	}
+	return nil
+}
+
+type NullPropertyStatus struct {
+	PropertyStatus PropertyStatus `json:"property_status"`
+	Valid          bool           `json:"valid"` // Valid is true if PropertyStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPropertyStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.PropertyStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PropertyStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPropertyStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PropertyStatus), nil
+}
+
+type PropertyType string
+
+const (
+	PropertyTypeHome       PropertyType = "home"
+	PropertyTypeLand       PropertyType = "land"
+	PropertyTypeCommercial PropertyType = "commercial"
+)
+
+func (e *PropertyType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PropertyType(s)
+	case string:
+		*e = PropertyType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PropertyType: %T", src)
+	}
+	return nil
+}
+
+type NullPropertyType struct {
+	PropertyType PropertyType `json:"property_type"`
+	Valid        bool         `json:"valid"` // Valid is true if PropertyType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPropertyType) Scan(value interface{}) error {
+	if value == nil {
+		ns.PropertyType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PropertyType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPropertyType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PropertyType), nil
+}
+
+type UserRole string
+
+const (
+	UserRoleAdmin UserRole = "admin"
+	UserRoleUser  UserRole = "user"
+	UserRoleGuest UserRole = "guest"
+)
+
+func (e *UserRole) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = UserRole(s)
+	case string:
+		*e = UserRole(s)
+	default:
+		return fmt.Errorf("unsupported scan type for UserRole: %T", src)
+	}
+	return nil
+}
+
+type NullUserRole struct {
+	UserRole UserRole `json:"user_role"`
+	Valid    bool     `json:"valid"` // Valid is true if UserRole is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullUserRole) Scan(value interface{}) error {
+	if value == nil {
+		ns.UserRole, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.UserRole.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullUserRole) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.UserRole), nil
+}
+
+type Property struct {
+	ID           uuid.UUID            `json:"id"`
+	PropertyType PropertyType         `json:"property_type"`
+	Status       NullPropertyStatus   `json:"status"`
+	SaleType     NullPropertySaleType `json:"sale_type"`
+	Images       []string             `json:"images"`
+	Title        string               `json:"title"`
+	Description  pgtype.Text          `json:"description"`
+	Price        pgtype.Numeric       `json:"price"`
+	Address      string               `json:"address"`
+	City         string               `json:"city"`
+	State        string               `json:"state"`
+	Bedrooms     pgtype.Int4          `json:"bedrooms"`
+	Bathrooms    pgtype.Int4          `json:"bathrooms"`
+	SquareFeet   pgtype.Int4          `json:"square_feet"`
+	AgentID      uuid.UUID            `json:"agent_id"`
+	CreatedAt    pgtype.Timestamp     `json:"created_at"`
+}
+
+type Subscription struct {
+	ID            uuid.UUID        `json:"id"`
+	UserID        uuid.UUID        `json:"user_id"`
+	Tier          string           `json:"tier"`
+	Status        pgtype.Text      `json:"status"`
+	MaxProperties int32            `json:"max_properties"`
+	Features      []string         `json:"features"`
+	CreatedAt     pgtype.Timestamp `json:"created_at"`
+	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
+}
+
 type User struct {
-	ID             uuid.UUID        `json:"id"`
-	Picture        pgtype.Text      `json:"picture"`
-	FullName       string           `json:"full_name"`
-	CreatedAt      pgtype.Timestamp `json:"created_at"`
-	Email          pgtype.Text      `json:"email"`
-	GoogleUid      pgtype.Text      `json:"google_uid"`
-	GithubUid      pgtype.Text      `json:"github_uid"`
-	PhoneNumber    pgtype.Text      `json:"phone_number"`
-	Password       pgtype.Text      `json:"password"`
-	GithubUsername pgtype.Text      `json:"github_username"`
-	GithubToken    pgtype.Text      `json:"github_token"`
+	ID          uuid.UUID        `json:"id"`
+	Picture     pgtype.Text      `json:"picture"`
+	Role        NullUserRole     `json:"role"`
+	FullName    string           `json:"full_name"`
+	Email       pgtype.Text      `json:"email"`
+	GoogleUid   pgtype.Text      `json:"google_uid"`
+	PhoneNumber pgtype.Text      `json:"phone_number"`
+	Password    pgtype.Text      `json:"password"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+}
+
+type UserAgent struct {
+	ID          uuid.UUID        `json:"id"`
+	Picture     pgtype.Text      `json:"picture"`
+	Name        string           `json:"name"`
+	Description string           `json:"description"`
+	PhoneNumber string           `json:"phone_number"`
+	Email       string           `json:"email"`
+	UserID      pgtype.UUID      `json:"user_id"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
 }

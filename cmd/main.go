@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	handler "golang_template/internal/api"
+	"golang_template/internal/db"
 
 	"log"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 )
 
 func main() {
+	db.Init()
 	e := echo.New()
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"*"},

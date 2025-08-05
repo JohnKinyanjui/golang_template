@@ -7,25 +7,96 @@ package query
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const authenticateByEmail = `-- name: AuthenticateByEmail :one
+select id from users where email = $1::text and password = crypt($2::text, password) limit 1
+`
+
+type AuthenticateByEmailParams struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+func (q *Queries) AuthenticateByEmail(ctx context.Context, arg AuthenticateByEmailParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, authenticateByEmail, arg.Email, arg.Password)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const createUserAgent = `-- name: CreateUserAgent :one
+insert into user_agents (user_id, picture, name, description, phone_number, email)
+values ($1::uuid, $2::text, $3::text, $4::text, $5::text, $6::text)
+returning id
+`
+
+type CreateUserAgentParams struct {
+	UserID      uuid.UUID `json:"user_id"`
+	Picture     string    `json:"picture"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	PhoneNumber string    `json:"phone_number"`
+	Email       string    `json:"email"`
+}
+
+func (q *Queries) CreateUserAgent(ctx context.Context, arg CreateUserAgentParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, createUserAgent,
+		arg.UserID,
+		arg.Picture,
+		arg.Name,
+		arg.Description,
+		arg.PhoneNumber,
+		arg.Email,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getUser = `-- name: GetUser :one
-select picture, full_name, email from users where id = $1
+select 
+    u.picture, u.full_name, u.email,
+    u.role::text as role, u.phone_number, u.created_at, 
+    json_build_object(
+        'id', a.id,
+        'picture', a.picture,
+        'name', a.name,
+        'description', a.description,
+        'phone_number', a.phone_number,
+        'email', a.email
+    ) as agent
+from users u
+left join user_agents a on u.id = a.user_id 
+where u.id = $1
 `
 
 type GetUserRow struct {
-	Picture  pgtype.Text `json:"picture"`
-	FullName string      `json:"full_name"`
-	Email    pgtype.Text `json:"email"`
+	Picture     pgtype.Text      `json:"picture"`
+	FullName    string           `json:"full_name"`
+	Email       pgtype.Text      `json:"email"`
+	Role        string           `json:"role"`
+	PhoneNumber pgtype.Text      `json:"phone_number"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	Agent       json.RawMessage  `json:"agent"`
 }
 
-func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (GetUserRow, error) {
-	row := q.db.QueryRow(ctx, getUser, id)
+func (q *Queries) GetUser(ctx context.Context, userID uuid.UUID) (GetUserRow, error) {
+	row := q.db.QueryRow(ctx, getUser, userID)
 	var i GetUserRow
-	err := row.Scan(&i.Picture, &i.FullName, &i.Email)
+	err := row.Scan(
+		&i.Picture,
+		&i.FullName,
+		&i.Email,
+		&i.Role,
+		&i.PhoneNumber,
+		&i.CreatedAt,
+		&i.Agent,
+	)
 	return i, err
 }
 
