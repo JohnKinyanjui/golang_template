@@ -12,6 +12,5 @@ func Handler(private, public *echo.Group) *AccountRouter {
 }
 
 func (rt *AccountRouter) Routes() {
-	rt.private.POST("/account/my/agent", rt.createAgent)
 	rt.private.GET("/account/my", rt.getMyAccount)
 }

@@ -1,0 +1,5 @@
+- Write `./docs/ui.md` to describe the expected frontend (UI) based on all backend APIs and services.
+- The document must summarize features **in short form**, grouped by service (e.g. Accounts, Auth, Events, Storage).
+- Each feature should be listed as a UI expectation (e.g. “User can register with email/password”, “User can upload and delete event attachments”).
+- Keep descriptions concise (1–2 lines per feature), avoiding implementation details.
+- Update this file whenever backend APIs change so frontend remains aligned.
