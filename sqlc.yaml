@@ -2,10 +2,8 @@ version: "2"
 sql:
   - schema:
       - "internal/db/schema/0001_users.up.sql"
-      - "internal/db/schema/0002_properties.up.sql"
     queries:
       - "internal/db/query/0001_users.sql"
-      - "internal/db/query/0002_properties.sql"
 
     engine: "postgresql"
     gen:
