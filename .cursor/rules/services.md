@@ -39,6 +39,8 @@ func (p *CreateUserParams) validate() error {
   ```yaml
   sql_package: "pgx/v5"
   ```
+- Single queries → db.Query.Method(ctx, query.Params{...})
+- Transactions → qtx := db.Query.WithTx(tx) then call queries on qtx
 
 ## 5. No More Reshappping
 
@@ -53,3 +55,7 @@ Don’t manually transform or reshape query results in Go.
 ## 7, Multitenancy
 
 - Handlers and services should always call a query to resolve the active tenant (e.g., `organization_id`, `store_id`, `school_id`, etc.) for the current user, instead of accepting these IDs from the request.
+
+## 8. Folder Structure
+
+Always organize features into separate folders (e.g., `feature_a/`, `feature_b/`) to keep the project clean, maintainable, and scalable.

@@ -5,13 +5,15 @@
 - Always write SQL in **lowercase**.
 - Keep queries **short and concise** (`select ... limit 1` instead of complex joins unless required).
 - use @ instead of $1, for example you can declare @name
+- Always split database logic into separate files to keep schemas and queries clean and maintainable.
+  - Use separate files for **major features or modules** (e.g., `002_table_a.up.sql`, `003_table_b.up.sql`).
+  - Group **related tables** in the same file if they belong to the same feature (e.g., `table_a.sql` may also include `table_a_logs` or `table_a_metadata`).
 
 ## 2. Schema Migrations
 
 - Store migrations in `./internal/db/schema/`.
 - File format:
   - `0001_<table>.up.sql` → migration (create table).
-  - `0001_<table>.down.sql` → rollback (drop table).
   - ⚠️ `0001_users.up.sql` already exists — **do not adjust it** (you may add new columns if required).
 
 ## 3. Queries
