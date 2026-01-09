@@ -13,4 +13,5 @@ func Handler(private, public *echo.Group) *AccountRouter {
 
 func (rt *AccountRouter) Routes() {
 	rt.private.GET("/account/my", rt.getMyAccount)
+	rt.private.PUT("/account/my", rt.updateMyAccount)
 }

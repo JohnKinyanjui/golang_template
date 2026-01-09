@@ -14,5 +14,6 @@ func Handler(private, public *echo.Group) *AuthRouter {
 func (rt *AuthRouter) Routes() {
 	rt.public.POST("/auth/google", rt.continueWithGoogle)
 	rt.public.POST("/auth/email", rt.continueWithEmail)
+	rt.public.POST("/auth/register/email", rt.registerWithEmail)
 
 }

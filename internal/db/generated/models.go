@@ -12,68 +12,439 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type UserRole string
+type DatingInteractionAction string
 
 const (
-	UserRoleAdmin UserRole = "admin"
-	UserRoleUser  UserRole = "user"
-	UserRoleGuest UserRole = "guest"
+	DatingInteractionActionLike DatingInteractionAction = "like"
+	DatingInteractionActionNope DatingInteractionAction = "nope"
 )
 
-func (e *UserRole) Scan(src interface{}) error {
+func (e *DatingInteractionAction) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = UserRole(s)
+		*e = DatingInteractionAction(s)
 	case string:
-		*e = UserRole(s)
+		*e = DatingInteractionAction(s)
 	default:
-		return fmt.Errorf("unsupported scan type for UserRole: %T", src)
+		return fmt.Errorf("unsupported scan type for DatingInteractionAction: %T", src)
 	}
 	return nil
 }
 
-type NullUserRole struct {
-	UserRole UserRole `json:"user_role"`
-	Valid    bool     `json:"valid"` // Valid is true if UserRole is not NULL
+type NullDatingInteractionAction struct {
+	DatingInteractionAction DatingInteractionAction `json:"dating_interaction_action"`
+	Valid                   bool                    `json:"valid"` // Valid is true if DatingInteractionAction is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullUserRole) Scan(value interface{}) error {
+func (ns *NullDatingInteractionAction) Scan(value interface{}) error {
 	if value == nil {
-		ns.UserRole, ns.Valid = "", false
+		ns.DatingInteractionAction, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.UserRole.Scan(value)
+	return ns.DatingInteractionAction.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullUserRole) Value() (driver.Value, error) {
+func (ns NullDatingInteractionAction) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.UserRole), nil
+	return string(ns.DatingInteractionAction), nil
+}
+
+type GenderType string
+
+const (
+	GenderTypeMale   GenderType = "male"
+	GenderTypeFemale GenderType = "female"
+)
+
+func (e *GenderType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = GenderType(s)
+	case string:
+		*e = GenderType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for GenderType: %T", src)
+	}
+	return nil
+}
+
+type NullGenderType struct {
+	GenderType GenderType `json:"gender_type"`
+	Valid      bool       `json:"valid"` // Valid is true if GenderType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullGenderType) Scan(value interface{}) error {
+	if value == nil {
+		ns.GenderType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.GenderType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullGenderType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.GenderType), nil
+}
+
+type LookingForType string
+
+const (
+	LookingForTypeSerious    LookingForType = "serious"
+	LookingForTypeCasual     LookingForType = "casual"
+	LookingForTypeFriendship LookingForType = "friendship"
+	LookingForTypeOther      LookingForType = "other"
+)
+
+func (e *LookingForType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = LookingForType(s)
+	case string:
+		*e = LookingForType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for LookingForType: %T", src)
+	}
+	return nil
+}
+
+type NullLookingForType struct {
+	LookingForType LookingForType `json:"looking_for_type"`
+	Valid          bool           `json:"valid"` // Valid is true if LookingForType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullLookingForType) Scan(value interface{}) error {
+	if value == nil {
+		ns.LookingForType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.LookingForType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullLookingForType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.LookingForType), nil
+}
+
+type StoryMediaType string
+
+const (
+	StoryMediaTypeImage StoryMediaType = "image"
+	StoryMediaTypeVideo StoryMediaType = "video"
+)
+
+func (e *StoryMediaType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = StoryMediaType(s)
+	case string:
+		*e = StoryMediaType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for StoryMediaType: %T", src)
+	}
+	return nil
+}
+
+type NullStoryMediaType struct {
+	StoryMediaType StoryMediaType `json:"story_media_type"`
+	Valid          bool           `json:"valid"` // Valid is true if StoryMediaType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullStoryMediaType) Scan(value interface{}) error {
+	if value == nil {
+		ns.StoryMediaType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.StoryMediaType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullStoryMediaType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.StoryMediaType), nil
+}
+
+type SubscriptionInterval string
+
+const (
+	SubscriptionIntervalMonthly SubscriptionInterval = "monthly"
+	SubscriptionIntervalYearly  SubscriptionInterval = "yearly"
+)
+
+func (e *SubscriptionInterval) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SubscriptionInterval(s)
+	case string:
+		*e = SubscriptionInterval(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SubscriptionInterval: %T", src)
+	}
+	return nil
+}
+
+type NullSubscriptionInterval struct {
+	SubscriptionInterval SubscriptionInterval `json:"subscription_interval"`
+	Valid                bool                 `json:"valid"` // Valid is true if SubscriptionInterval is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSubscriptionInterval) Scan(value interface{}) error {
+	if value == nil {
+		ns.SubscriptionInterval, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SubscriptionInterval.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSubscriptionInterval) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SubscriptionInterval), nil
+}
+
+type SubscriptionStatus string
+
+const (
+	SubscriptionStatusActive   SubscriptionStatus = "active"
+	SubscriptionStatusCanceled SubscriptionStatus = "canceled"
+	SubscriptionStatusExpired  SubscriptionStatus = "expired"
+)
+
+func (e *SubscriptionStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SubscriptionStatus(s)
+	case string:
+		*e = SubscriptionStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SubscriptionStatus: %T", src)
+	}
+	return nil
+}
+
+type NullSubscriptionStatus struct {
+	SubscriptionStatus SubscriptionStatus `json:"subscription_status"`
+	Valid              bool               `json:"valid"` // Valid is true if SubscriptionStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSubscriptionStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.SubscriptionStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SubscriptionStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSubscriptionStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SubscriptionStatus), nil
+}
+
+type UserStatus string
+
+const (
+	UserStatusActive    UserStatus = "active"
+	UserStatusSuspended UserStatus = "suspended"
+	UserStatusDeleted   UserStatus = "deleted"
+)
+
+func (e *UserStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = UserStatus(s)
+	case string:
+		*e = UserStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for UserStatus: %T", src)
+	}
+	return nil
+}
+
+type NullUserStatus struct {
+	UserStatus UserStatus `json:"user_status"`
+	Valid      bool       `json:"valid"` // Valid is true if UserStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullUserStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.UserStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.UserStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullUserStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.UserStatus), nil
+}
+
+type Block struct {
+	ID        uuid.UUID        `json:"id"`
+	BlockerID uuid.UUID        `json:"blocker_id"`
+	BlockedID uuid.UUID        `json:"blocked_id"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
+type Conversation struct {
+	ID        uuid.UUID        `json:"id"`
+	UserOneID uuid.UUID        `json:"user_one_id"`
+	UserTwoID uuid.UUID        `json:"user_two_id"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
+type DatingInteraction struct {
+	ID           uuid.UUID               `json:"id"`
+	UserID       uuid.UUID               `json:"user_id"`
+	TargetUserID uuid.UUID               `json:"target_user_id"`
+	Action       DatingInteractionAction `json:"action"`
+	ActedAt      pgtype.Timestamp        `json:"acted_at"`
+}
+
+type Like struct {
+	ID         uuid.UUID        `json:"id"`
+	FromUserID uuid.UUID        `json:"from_user_id"`
+	ToUserID   uuid.UUID        `json:"to_user_id"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
+}
+
+type Match struct {
+	ID        uuid.UUID        `json:"id"`
+	UserOneID uuid.UUID        `json:"user_one_id"`
+	UserTwoID uuid.UUID        `json:"user_two_id"`
+	MatchedAt pgtype.Timestamp `json:"matched_at"`
+}
+
+type Message struct {
+	ID             uuid.UUID        `json:"id"`
+	ConversationID uuid.UUID        `json:"conversation_id"`
+	SenderID       uuid.UUID        `json:"sender_id"`
+	MessageText    string           `json:"message_text"`
+	IsRead         bool             `json:"is_read"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+}
+
+type Profile struct {
+	ID         uuid.UUID          `json:"id"`
+	UserID     uuid.UUID          `json:"user_id"`
+	About      pgtype.Text        `json:"about"`
+	Location   pgtype.Text        `json:"location"`
+	LookingFor NullLookingForType `json:"looking_for"`
+	BirthDate  pgtype.Date        `json:"birth_date"`
+	Height     pgtype.Int4        `json:"height"`
+	Education  pgtype.Text        `json:"education"`
+	JobTitle   pgtype.Text        `json:"job_title"`
+	CreatedAt  pgtype.Timestamp   `json:"created_at"`
+	UpdatedAt  pgtype.Timestamp   `json:"updated_at"`
+}
+
+type ProfilePhoto struct {
+	ID        uuid.UUID        `json:"id"`
+	UserID    uuid.UUID        `json:"user_id"`
+	ImageUrl  string           `json:"image_url"`
+	Position  int32            `json:"position"`
+	IsPrimary bool             `json:"is_primary"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
+type Report struct {
+	ID             uuid.UUID        `json:"id"`
+	ReporterID     uuid.UUID        `json:"reporter_id"`
+	ReportedUserID uuid.UUID        `json:"reported_user_id"`
+	Reason         string           `json:"reason"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+}
+
+type Story struct {
+	ID        uuid.UUID        `json:"id"`
+	UserID    uuid.UUID        `json:"user_id"`
+	MediaUrl  string           `json:"media_url"`
+	MediaType StoryMediaType   `json:"media_type"`
+	ExpiresAt pgtype.Timestamp `json:"expires_at"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
+type SubscriptionPlan struct {
+	ID                    uuid.UUID            `json:"id"`
+	Code                  string               `json:"code"`
+	Name                  string               `json:"name"`
+	PriceCents            int32                `json:"price_cents"`
+	Currency              string               `json:"currency"`
+	Interval              SubscriptionInterval `json:"interval"`
+	MaxProfileViewsPerDay pgtype.Int4          `json:"max_profile_views_per_day"`
+	CanViewPhone          bool                 `json:"can_view_phone"`
+	CreatedAt             pgtype.Timestamp     `json:"created_at"`
+	UpdatedAt             pgtype.Timestamp     `json:"updated_at"`
 }
 
 type User struct {
-	ID          uuid.UUID        `json:"id"`
-	Picture     pgtype.Text      `json:"picture"`
-	Role        NullUserRole     `json:"role"`
-	FullName    string           `json:"full_name"`
-	Email       pgtype.Text      `json:"email"`
-	GoogleUid   pgtype.Text      `json:"google_uid"`
-	PhoneNumber pgtype.Text      `json:"phone_number"`
-	Password    pgtype.Text      `json:"password"`
-	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	ID           uuid.UUID        `json:"id"`
+	Username     string           `json:"username"`
+	Email        string           `json:"email"`
+	Phone        pgtype.Text      `json:"phone"`
+	PasswordHash pgtype.Text      `json:"password_hash"`
+	Gender       NullGenderType   `json:"gender"`
+	IsVerified   bool             `json:"is_verified"`
+	LastLoginAt  pgtype.Timestamp `json:"last_login_at"`
+	Status       UserStatus       `json:"status"`
+	CreatedAt    pgtype.Timestamp `json:"created_at"`
+	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
+	GoogleUid    pgtype.Text      `json:"google_uid"`
+	Picture      pgtype.Text      `json:"picture"`
+	About        pgtype.Text      `json:"about"`
+	Location     pgtype.Text      `json:"location"`
+	LookingFor   pgtype.Text      `json:"looking_for"`
 }
 
-type UserAgent struct {
+type UserFeatureUsage struct {
 	ID          uuid.UUID        `json:"id"`
-	Picture     pgtype.Text      `json:"picture"`
-	Name        string           `json:"name"`
-	Description string           `json:"description"`
-	PhoneNumber string           `json:"phone_number"`
-	Email       string           `json:"email"`
-	UserID      pgtype.UUID      `json:"user_id"`
+	UserID      uuid.UUID        `json:"user_id"`
+	FeatureCode string           `json:"feature_code"`
+	PeriodStart pgtype.Date      `json:"period_start"`
+	UsedCount   int32            `json:"used_count"`
 	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+}
+
+type UserSubscription struct {
+	ID               uuid.UUID          `json:"id"`
+	UserID           uuid.UUID          `json:"user_id"`
+	PlanID           uuid.UUID          `json:"plan_id"`
+	Status           SubscriptionStatus `json:"status"`
+	StartedAt        pgtype.Timestamp   `json:"started_at"`
+	CurrentPeriodEnd pgtype.Timestamp   `json:"current_period_end"`
+	CanceledAt       pgtype.Timestamp   `json:"canceled_at"`
+	CreatedAt        pgtype.Timestamp   `json:"created_at"`
+	UpdatedAt        pgtype.Timestamp   `json:"updated_at"`
 }

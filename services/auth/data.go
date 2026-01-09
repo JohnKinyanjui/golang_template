@@ -24,9 +24,30 @@ type EmailParams struct {
 	Password string `json:"password"`
 }
 
+type RegisterEmailParams struct {
+	Username   string `json:"username"`
+	Email      string `json:"email"`
+	Phone      string `json:"phone"`
+	Password   string `json:"password"`
+	Gender     string `json:"gender"`
+	About      string `json:"about"`
+	Location   string `json:"location"`
+	LookingFor string `json:"looking_for"`
+}
+
 func (params EmailParams) validate() *helpers.ResultError {
 	if params.Email == "" || params.Password == "" {
 		return helpers.Error("email or password is empty", errors.New("email or password is empty"))
+	}
+	return nil
+}
+
+func (params RegisterEmailParams) validate() *helpers.ResultError {
+	if params.Username == "" || params.Email == "" || params.Password == "" || params.Gender == "" {
+		return helpers.Error("missing required fields", errors.New("missing required fields"))
+	}
+	if params.Gender != "male" && params.Gender != "female" {
+		return helpers.Error("invalid gender", errors.New("invalid gender"))
 	}
 	return nil
 }

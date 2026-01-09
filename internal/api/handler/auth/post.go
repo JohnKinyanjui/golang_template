@@ -7,6 +7,20 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+func (rt *AuthRouter) registerWithEmail(ctx echo.Context) error {
+	var params auth_service.RegisterEmailParams
+	if err := ctx.Bind(&params); err != nil {
+		return api_helpers.ResultSimple(ctx, "invalid request data", err)
+	}
+
+	result, err := auth_service.RegisterWithEmail(params)
+	if err != nil {
+		return api_helpers.ResultSimple(ctx, err.Understandable, err.Error)
+	}
+
+	return api_helpers.ResultCustom(ctx, result, nil)
+}
+
 func (rt *AuthRouter) continueWithGoogle(ctx echo.Context) error {
 	token, err := auth_service.ContinueWithGoogle(api_helpers.String(ctx.QueryParam("token")), auth_service.AuthParams{
 		Option: auth_service.SignIn,
@@ -30,8 +44,6 @@ func (rt *AuthRouter) continueWithEmail(ctx echo.Context) error {
 	if err != nil {
 		return api_helpers.ResultSimple(ctx, err.Understandable, err.Error)
 	}
-
-	// api_helpers.StoreCookie(ctx, token)
 
 	return api_helpers.ResultCustom(ctx, result, nil)
 }

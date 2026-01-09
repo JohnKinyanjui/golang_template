@@ -1,5 +1,5 @@
 package accounts_service
 
 const getAccountQuery = `
-	select picture, full_name, email from users where id = $1
+	select picture, username, email from users where id = $1
 `

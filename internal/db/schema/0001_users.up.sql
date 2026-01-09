@@ -1,32 +1,45 @@
 create extension if not exists "uuid-ossp";
 create extension if not exists pgcrypto;
 
-create type user_role as enum ('admin', 'user', 'guest');
+create type gender_type as enum ('male', 'female');
+create type user_status as enum ('active', 'suspended', 'deleted');
+
+create or replace function set_updated_at()
+returns trigger as $$
+begin
+    new.updated_at = (current_timestamp at time zone 'utc');
+    return new;
+end;
+$$ language plpgsql;
+
 create table if not exists users (
     id uuid primary key default uuid_generate_v4(),
-    picture varchar(255) default 'none',
-    role user_role default 'user',
-    full_name varchar(255) not null,
-    email varchar(255) unique,
-    google_uid varchar(255) unique,
-    phone_number varchar(15) unique,
-    password varchar(255),
-    created_at timestamp not null default (current_timestamp at time zone 'utc')
-);
-
-create table if not exists user_agents (
-    id uuid primary key default uuid_generate_v4(),
-    picture varchar(255) default 'none',
-    name varchar(255) not null,
-    description text not null,
-    phone_number varchar(15) not null,
+    username varchar(50) not null,
     email varchar(255) not null,
-    user_id uuid unique references users(id) on delete cascade,
-    created_at timestamp not null default (current_timestamp at time zone 'utc')
+    phone varchar(15),
+    password_hash varchar(255),
+    gender gender_type,
+    is_verified boolean not null default false,
+    last_login_at timestamp,
+    status user_status not null default 'active',
+    created_at timestamp not null default (current_timestamp at time zone 'utc'),
+    updated_at timestamp not null default (current_timestamp at time zone 'utc'),
+    google_uid varchar(255) unique,
+    picture varchar(255) default 'none',
+    about text,
+    location varchar(255),
+    looking_for varchar(255),
+    constraint users_username_unique unique (username),
+    constraint users_email_unique unique (email),
+    constraint users_phone_unique unique (phone)
 );
 
--- Create an index on email to improve search performance if necessary
-create index idx_users_email on users(email);
-create index idx_users_email on users(google_uid);
-create index idx_auth_phone_number on users(phone_number);
+drop trigger if exists trg_users_updated_at on users;
+create trigger trg_users_updated_at
+before update on users
+for each row
+execute function set_updated_at();
+
+create index idx_users_status on users(status);
+create index idx_users_last_login_at on users(last_login_at);
 

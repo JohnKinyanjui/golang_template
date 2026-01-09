@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"golang_template/internal/db"
-	query "golang_template/internal/db/generated"
 	"golang_template/pkg/middlewares"
+
+	"github.com/google/uuid"
 )
 
 func ContinueWithGoogle(token string, params AuthParams) (string, error) {
@@ -18,25 +19,39 @@ func ContinueWithGoogle(token string, params AuthParams) (string, error) {
 		return "", nil
 	}
 
+	email, ok := dt["email"].(string)
+	if !ok || email == "" {
+		return "", errors.New("email is not found")
+	}
+
+	googleUid, ok := dt["sub"].(string)
+	if !ok || googleUid == "" {
+		return "", errors.New("google uid is not found")
+	}
+
 	ctx := context.Background()
 	if params.Option == SignIn {
-		userId, err := db.Query.SignInWithGoogle(ctx, query.SignInWithGoogleParams{
-			Email:     dt["email"].(string),
-			GoogleUid: dt["google_uid"].(string),
-		})
-		if err != nil {
+		var userId uuid.UUID
+		if err := db.PgConn.QueryRow(
+			ctx,
+			"select id from users where email = $1::text and google_uid = $2::text limit 1",
+			email,
+			googleUid,
+		).Scan(&userId); err != nil {
 			return "", err
 		}
 
 		return middlewares.GenerateJWT(userId.String())
 
 	} else if params.Option == Update {
-		userId, err := db.Query.UpdateGoogleDetails(ctx, query.UpdateGoogleDetailsParams{
-			ID:        params.Id,
-			Email:     dt["email"].(string),
-			GoogleUid: dt["google_uid"].(string),
-		})
-		if err != nil {
+		var userId uuid.UUID
+		if err := db.PgConn.QueryRow(
+			ctx,
+			"update users set email = $1::text, google_uid = $2::text where id = $3 returning id",
+			email,
+			googleUid,
+			params.Id,
+		).Scan(&userId); err != nil {
 			return "", err
 		}
 

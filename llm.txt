@@ -1,0 +1,497 @@
+# GlobalGAP Backend Codebase Instructions
+
+## Overview
+This is a Go-based backend application using the Echo web framework, PostgreSQL database, and various tools for development and deployment.
+
+## Project Structure
+```
+globalgap_backend/
+├── cmd/
+│   └── main.go                 # Application entry point
+├── internal/
+│   ├── api/
+│   │   ├── handler/            # HTTP handlers organized by feature
+│   │   ├── helpers/            # API helper functions
+│   │   └── router.go           # Route definitions
+│   ├── db/
+│   │   ├── db.go               # Database connection setup
+│   │   ├── generated/          # Auto-generated database code (sqlc)
+│   │   ├── query/              # SQL query files for sqlc
+│   │   └── schema/             # Database migration files
+│   └── sockets/                # WebSocket handlers
+├── pkg/
+│   ├── helpers/                # Shared utility functions
+│   ├── logger/                 # Logging utilities
+│   └── middlewares/            # HTTP middlewares (auth, JWT)
+├── services/                   # Business logic services
+├── .env                        # Environment variables
+├── .env.example                # Environment variables template
+├── go.mod                      # Go module dependencies
+├── Makefile                    # Build and development commands
+├── sqlc.yaml                   # SQL code generation configuration
+└── README.md                   # Project documentation
+```
+
+## Technology Stack
+- **Language**: Go 1.24
+- **Web Framework**: Echo v4
+- **Database**: PostgreSQL with pgx/v5 driver
+- **ORM/Code Generation**: sqlc for type-safe database queries
+- **Migrations**: Goose
+- **Authentication**: JWT tokens
+- **WebSockets**: Gorilla WebSocket and Neffos
+- **Templating**: a-h/templ for HTML templates
+- **File Processing**: Excelize for Excel files
+- **Environment**: godotenv for .env files
+
+## Development Tools
+- **Live Reload**: Air (non-Windows) / Arelo (Windows)
+- **Build Tool**: Make
+- **Dependency Management**: Go modules
+
+## Key Patterns and Conventions
+
+### 1. Code Organization
+- Use standard Go project layout
+- Business logic in `services/` directory
+- HTTP handlers in `internal/api/handler/`
+- Database code in `internal/db/`
+- Shared utilities in `pkg/`
+
+### 2. Database Setup
+- Use sqlc for generating type-safe Go code from SQL
+- Migrations in `internal/db/schema/` with Goose
+- Connection pooling with pgx/v5
+- Singleton pattern for database connection
+
+### 3. API Structure
+- RESTful API with versioning (/api/v1)
+- Grouped routes: private (authenticated) and public
+- Each feature has its own handler package
+- Middleware for authentication and CORS
+
+### 4. Authentication
+- JWT-based authentication
+- Custom auth middleware in `pkg/middlewares/`
+- Separate auth handler for login/register
+
+### 5. WebSockets
+- Real-time communication support
+- WebSocket endpoint at /ws
+
+## Setup Instructions
+
+### Prerequisites
+- Go 1.24+
+- PostgreSQL database
+- Make
+
+### Environment Variables
+Create `.env` file based on `.env.example`:
+```
+DB_URL=postgresql://user:password@localhost:5432/dbname
+PORT=8080
+JWT_SECRET=your-secret-key
+```
+
+### Database Setup
+1. Create PostgreSQL database
+2. Run migrations: `make db-up`
+3. Generate database code: `sqlc generate`
+
+### Running the Application
+- Development: `make server` (uses Air for live reload)
+- Build: `go build -o main ./cmd`
+- Run `templ generate` for HTML templates
+- Run `sqlc generate` after changing database queries
+- Auto-generated code goes in respective generated directories
+
+## Key Code Examples
+
+### 1. Main Application Entry Point
+```go
+package main
+
+import (
+	"fmt"
+	handler "golang_template/internal/api"
+	"golang_template/internal/db"
+	"golang_template/internal/sockets"
+
+	"log"
+	"net/http"
+	"os"
+
+	_ "github.com/a-h/templ"
+
+	"github.com/joho/godotenv"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+)
+
+func main() {
+	db.Init()
+
+	e := echo.New()
+	e.Use(middleware.BodyLimit("5M"))
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:3000"},
+		AllowMethods: []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodDelete,
+			http.MethodOptions,
+		},
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+		},
+		AllowCredentials: true,
+	}))
+	handler.Router(e)
+
+	e.Any("/ws", echo.WrapHandler(sockets.GetWebsocket()))
+	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", os.Getenv("PORT"))))
+
+}
+
+func init() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+### 2. Database Connection Setup
+```go
+package db
+
+import (
+	"context"
+	"fmt"
+	query "golang_template/internal/db/generated"
+	"os"
+	"sync"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+var (
+	PgConn *pgxpool.Pool
+	once   sync.Once
+	Query  *query.Queries
+)
+
+func Init() {
+	once.Do(func() {
+		config, err := pgxpool.ParseConfig(os.Getenv("DB_URL"))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Unable to parse database config: %v\n", err)
+			os.Exit(1)
+		}
+
+		pool, err := pgxpool.NewWithConfig(context.Background(), config)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v\n", err)
+			os.Exit(1)
+		}
+
+		PgConn = pool
+		Query = query.New(pool)
+
+		// Graceful shutdown: Close pool on application exit
+		go func() {
+			<-context.Background().Done()
+			PgConn.Close()
+		}()
+	})
+}
+```
+
+### 3. Router Setup
+```go
+package handler
+
+import (
+	accounts_handler "golang_template/internal/api/handler/accounts"
+	auth_handler "golang_template/internal/api/handler/accounts/auth"
+	chats_handler "golang_template/internal/api/handler/chats"
+	checklist_handler "golang_template/internal/api/handler/checklist"
+	company_handler "golang_template/internal/api/handler/company"
+	farm_handler "golang_template/internal/api/handler/farms"
+	reports_handler "golang_template/internal/api/handler/reports"
+	team_handler "golang_template/internal/api/handler/team"
+	"golang_template/pkg/middlewares"
+
+	"github.com/labstack/echo/v4"
+)
+
+func Router(e *echo.Echo) {
+	private := e.Group("/api/v1")
+	public := e.Group("/api/v1")
+	private.Use(middlewares.AuthMiddleware)
+
+	// routes
+	{
+		auth_handler.Handler(private, public).Routes()
+		accounts_handler.Handler(private, public).Routes()
+		farm_handler.Handler(private, public).Routes()
+		checklist_handler.Handler(private, public).Routes()
+		company_handler.Handler(private, public).Routes()
+		team_handler.Handler(private, public).Routes()
+		reports_handler.Handler(private, public).Routes()
+		chats_handler.Handler(private, public).Routes()
+	}
+}
+```
+
+### 4. Handler Pattern
+Each feature handler typically follows this pattern:
+```go
+package auth
+
+import (
+	"golang_template/internal/db"
+	"golang_template/pkg/helpers"
+	"golang_template/services/accounts"
+	"net/http"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/labstack/echo/v4"
+)
+
+type Handler struct {
+	private *echo.Group
+	public  *echo.Group
+}
+
+func (h Handler) Routes() {
+	h.public.POST("/login", h.Login)
+	h.public.POST("/register", h.Register)
+	h.private.POST("/refresh", h.RefreshToken)
+}
+
+func NewHandler(private, public *echo.Group) Handler {
+	return Handler{private, public}
+}
+
+// Example handler method
+func (h Handler) Login(c echo.Context) error {
+	var req LoginRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
+	}
+
+	// Business logic in service
+	user, err := accounts.Login(req.Email, req.Password)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid credentials"})
+	}
+
+	// Generate JWT token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.ID,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+	})
+
+	tokenString, err := token.SignedString([]byte("your-secret-key"))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate token"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{"token": tokenString, "user": user})
+}
+```
+
+### 5. Service Layer Pattern
+```go
+package accounts
+
+import (
+	"context"
+	"errors"
+	"golang_template/internal/db"
+	"golang.org/x/crypto/bcrypt"
+)
+
+type User struct {
+	ID       int    `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"password,omitempty"`
+	Name     string `json:"name"`
+}
+
+func Login(email, password string) (*User, error) {
+	// Get user from database using generated queries
+	user, err := db.Query.GetUserByEmail(context.Background(), email)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	// Verify password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return nil, errors.New("invalid password")
+	}
+
+	// Convert to service struct (remove password)
+	return &User{
+		ID:    int(user.ID),
+		Email: user.Email,
+		Name:  user.Name,
+	}, nil
+}
+```
+
+### 6. Database Query with sqlc
+Example SQL query file (`internal/db/query/0001_users.sql`):
+```sql
+-- name: GetUserByEmail :one
+SELECT id, email, password, name, created_at, updated_at
+FROM users
+WHERE email = $1;
+
+-- name: CreateUser :one
+INSERT INTO users (email, password, name)
+VALUES ($1, $2, $3)
+RETURNING id, email, password, name, created_at, updated_at;
+```
+
+This generates Go code in `internal/db/generated/` that you can call like:
+```go
+db.Query.GetUserByEmail(context.Background(), email)
+db.Query.CreateUser(context.Background(), query.CreateUserParams{
+	Email:    email,
+	Password: password,
+	Name:     name,
+})
+```
+
+### 7. Middleware Example
+```go
+package middlewares
+
+import (
+	"strings"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/labstack/echo/v4"
+)
+
+func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		auth := c.Request().Header.Get("Authorization")
+		if auth == "" {
+			return echo.NewHTTPError(401, "Missing token")
+		}
+
+		parts := strings.Split(auth, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			return echo.NewHTTPError(401, "Invalid token format")
+		}
+
+		tokenString := parts[1]
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			return []byte("your-secret-key"), nil
+		})
+
+		if err != nil || !token.Valid {
+			return echo.NewHTTPError(401, "Invalid token")
+		}
+
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			c.Set("user_id", claims["user_id"])
+		}
+
+		return next(c)
+	}
+}
+```
+
+### 8. Makefile for Development
+```makefile
+# Load environment variables from .env file
+ifneq (,$(wildcard ./.env))
+    include .env
+    export
+endif
+
+MIGRATION_DIR = "/internal/db/migrations"
+
+# run air to detect any go file changes to re-build and re-run the server.
+server:
+	@air \
+		--build.cmd "go build --tags dev -o tmp/bin/main ./cmd" \
+		--build.bin "tmp/bin/main" \
+		--build.delay "100" \
+		--build.include_ext "go" \
+		--build.stop_on_error "false" \
+		--misc.clean_on_exit true \
+		--screen.clear_on_rebuild true \
+		--log.main_only true
+
+db-status:
+	@GOOSE_DRIVER=$(DB_DRIVER) GOOSE_DBSTRING=$(DB_NAME) go run github.com/pressly/goose/v3/cmd/goose@latest -dir=$(MIGRATION_DIR) status
+
+db-reset:
+	@GOOSE_DRIVER=$(DB_DRIVER) GOOSE_DBSTRING=$(DB_NAME) go run github.com/pressly/goose/v3/cmd/goose@latest -dir=$(MIGRATION_DIR) reset
+
+db-down:
+	@GOOSE_DRIVER=$(DB_DRIVER) GOOSE_DBSTRING=$(DB_NAME) go run github.com/pressly/goose/v3/cmd/goose@latest -dir=$(MIGRATION_DIR) down
+
+db-up:
+	@GOOSE_DRIVER=$(DB_DRIVER) GOOSE_DBSTRING=$(DB_NAME) go run github.com/pressly/goose/v3/cmd/goose@latest -dir=$(MIGRATION_DIR) up
+
+db-mig-create:
+	@GOOSE_DRIVER=$(DB_DRIVER) GOOSE_DBSTRING=$(DB_NAME) go run github.com/pressly/goose/v3/cmd/goose@latest -dir=$(MIGRATION_DIR) create $(filter-out $@,$(MAKECMDGOALS)) sql
+```
+
+## Best Practices
+
+- Use interfaces for dependency injection
+- Handle errors properly with Echo's error handling
+- Use context for request-scoped operations
+- Keep handlers thin, move logic to services
+- Use generated database queries for type safety
+- Follow Go naming conventions and formatting
+- **Avoid huge code blocks**: Keep functions under 30 lines, split complex logic into smaller functions
+- **Write readable code**: Use clear variable names, add comments for non-obvious logic
+- **Maintain consistency**: Follow the established patterns in each layer
+
+## Architecture Explanation
+
+### Layered Architecture
+Clean separation of concerns across four layers:
+
+1. **Handlers** (`internal/api/handler/`): HTTP request/response, validation, formatting
+2. **Services** (`services/`): Business logic, domain rules, data orchestration
+3. **Database** (`internal/db/`): Data persistence with type-safe sqlc queries
+4. **Shared** (`pkg/`): Common utilities, middlewares, helpers
+
+### Why This Structure Works
+- **Separation of Concerns**: Each layer has one responsibility
+- **Testability**: Business logic isolated from HTTP layer
+- **Maintainability**: Changes in one layer don't cascade
+- **Type Safety**: sqlc prevents runtime SQL errors
+- **Scalability**: Clear patterns for adding features
+
+### Request Flow
+1. HTTP request → Handler validates input
+2. Handler calls service method
+3. Service executes business logic
+4. Service calls database queries
+5. Database returns data → Service processes → Handler formats response
+
+### Authentication Flow
+- Public routes: No middleware required
+- Private routes: JWT middleware validates token
+- Token claims extracted and stored in request context
+- Services access user context for authorization checks
+
+### Database Patterns
+- Migrations ensure schema consistency across environments
+- sqlc generates type-safe Go code from SQL queries
+- Connection pooling with pgx for performance
+- Context-aware queries support timeouts and cancellation

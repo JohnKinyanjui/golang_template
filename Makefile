@@ -4,7 +4,7 @@ ifneq (,$(wildcard ./.env))
     export
 endif
 
-MIGRATION_DIR = "/internal/db/migrations"
+MIGRATION_DIR = "internal/db/schema"
 
 ifeq ($(OS),Windows_NT)
 	MAIN_PATH = /tmp/bin/main.exe
