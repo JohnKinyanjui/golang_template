@@ -11,13 +11,11 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-var ErrUsernameAlreadyExists = errors.New("username already exists")
+var ErrFullNameAlreadyExists = errors.New("full_name already exists")
 
 type UpdateAccountParams struct {
-	Username   *string `json:"username"`
-	About      *string `json:"about"`
-	Location   *string `json:"location"`
-	LookingFor *string `json:"looking_for"`
+	FullName *string `json:"full_name"`
+	Phone    *string `json:"phone"`
 }
 
 func UpdateAccount(id string, params UpdateAccountParams) (interface{}, error) {
@@ -27,24 +25,16 @@ func UpdateAccount(id string, params UpdateAccountParams) (interface{}, error) {
 	queries := query.New(db.PgConn)
 
 	arg := query.UpdateMyAccountParams{
-		ID:         userID,
-		Username:   pgtype.Text{Valid: false},
-		About:      pgtype.Text{Valid: false},
-		Location:   pgtype.Text{Valid: false},
-		LookingFor: pgtype.Text{Valid: false},
+		ID:       userID,
+		FullName: pgtype.Text{Valid: false},
+		Phone:    pgtype.Text{Valid: false},
 	}
 
-	if params.Username != nil {
-		arg.Username = pgtype.Text{String: *params.Username, Valid: true}
+	if params.FullName != nil {
+		arg.FullName = pgtype.Text{String: *params.FullName, Valid: true}
 	}
-	if params.About != nil {
-		arg.About = pgtype.Text{String: *params.About, Valid: true}
-	}
-	if params.Location != nil {
-		arg.Location = pgtype.Text{String: *params.Location, Valid: true}
-	}
-	if params.LookingFor != nil {
-		arg.LookingFor = pgtype.Text{String: *params.LookingFor, Valid: true}
+	if params.Phone != nil {
+		arg.Phone = pgtype.Text{String: *params.Phone, Valid: true}
 	}
 
 	row, err := queries.UpdateMyAccount(ctx, arg)
@@ -52,19 +42,17 @@ func UpdateAccount(id string, params UpdateAccountParams) (interface{}, error) {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == "23505" {
-				return nil, ErrUsernameAlreadyExists
+				return nil, ErrFullNameAlreadyExists
 			}
 		}
 		return nil, err
 	}
 
 	res := MyAccount{
-		Picture:    row.Picture,
-		Username:   row.Username,
-		Email:      row.Email,
-		About:      row.About,
-		Location:   row.Location,
-		LookingFor: row.LookingFor,
+		Picture:  row.Picture,
+		FullName: row.FullName,
+		Email:    row.Email,
+		Phone:    row.Phone.String,
 	}
 
 	return res, nil

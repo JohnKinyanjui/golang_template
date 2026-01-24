@@ -21,14 +21,10 @@ func RegisterWithEmail(params RegisterEmailParams) (*AuthResult, *helpers.Result
 
 	queries := query.New(db.PgConn)
 	id, err := queries.CreateUserWithEmail(ctx, query.CreateUserWithEmailParams{
-		Username:   params.Username,
-		Email:      params.Email,
-		Phone:      params.Phone,
-		Password:   params.Password,
-		Gender:     query.GenderType(params.Gender),
-		About:      params.About,
-		Location:   params.Location,
-		LookingFor: params.LookingFor,
+		FullName: params.FullName,
+		Email:    params.Email,
+		Phone:    params.Phone,
+		Password: params.Password,
 	})
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -39,8 +35,6 @@ func RegisterWithEmail(params RegisterEmailParams) (*AuthResult, *helpers.Result
 		}
 		return nil, helpers.Error("unable to register", err)
 	}
-
-	_ = queries.UpdateLastLogin(ctx, id)
 
 	token, err := middlewares.GenerateJWT(id.String())
 	if err != nil {

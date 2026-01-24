@@ -2,13 +2,8 @@ version: "2"
 sql:
   - schema:
       - "internal/db/schema/0001_users.up.sql"
-      - "internal/db/schema/0002_dating.up.sql"
-      - "internal/db/schema/0003_pricing.up.sql"
-      - "internal/db/schema/0004_dating_interactions.up.sql"
     queries:
       - "internal/db/query/0001_users.sql"
-      - "internal/db/query/0002_dating.sql"
-      - "internal/db/query/0003_pricing.sql"
 
     engine: "postgresql"
     gen:

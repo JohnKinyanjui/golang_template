@@ -30,11 +30,3 @@ values
     
     ('google_user_2', 'google.user2@gmail.com', null, null, 'female', 'UX designer passionate about creating beautiful and functional interfaces.', 'San Francisco, USA', 'New friends', true, 'https://picsum.photos/seed/googleuser2/200/200.jpg');
 
--- update google_uid for Google users
-update users set google_uid = 'google_uid_1234567899' where email = 'google.user1@gmail.com';
-update users set google_uid = 'google_uid_1234567900' where email = 'google.user2@gmail.com';
-
--- set some last_login_at timestamps to simulate active users
-update users set last_login_at = (current_timestamp at time zone 'utc') - interval '1 hour' where username in ('johndoe', 'sarah_jones', 'mike_smith');
-update users set last_login_at = (current_timestamp at time zone 'utc') - interval '1 day' where username in ('emma_davis', 'david_brown', 'alex_wilson');
-update users set last_login_at = (current_timestamp at time zone 'utc') - interval '1 week' where username in ('lisa_miller', 'chris_taylor', 'jennifer_garcia');

@@ -29,41 +29,29 @@ func (q *Queries) AuthenticateByEmail(ctx context.Context, arg AuthenticateByEma
 }
 
 const createUserWithEmail = `-- name: CreateUserWithEmail :one
-insert into users (username, email, phone, password_hash, gender, about, location, looking_for)
+insert into users (full_name, email, phone, password_hash)
 values (
     $1::text,
     $2::text,
     nullif($3::text, ''),
-    crypt($4::text, gen_salt('bf')),
-    $5::gender_type,
-    nullif($6::text, ''),
-    nullif($7::text, ''),
-    nullif($8::text, '')
+    crypt($4::text, gen_salt('bf'))
 )
 returning id
 `
 
 type CreateUserWithEmailParams struct {
-	Username   string     `json:"username"`
-	Email      string     `json:"email"`
-	Phone      string     `json:"phone"`
-	Password   string     `json:"password"`
-	Gender     GenderType `json:"gender"`
-	About      string     `json:"about"`
-	Location   string     `json:"location"`
-	LookingFor string     `json:"looking_for"`
+	FullName string `json:"full_name"`
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
+	Password string `json:"password"`
 }
 
 func (q *Queries) CreateUserWithEmail(ctx context.Context, arg CreateUserWithEmailParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, createUserWithEmail,
-		arg.Username,
+		arg.FullName,
 		arg.Email,
 		arg.Phone,
 		arg.Password,
-		arg.Gender,
-		arg.About,
-		arg.Location,
-		arg.LookingFor,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)
@@ -73,22 +61,18 @@ func (q *Queries) CreateUserWithEmail(ctx context.Context, arg CreateUserWithEma
 const getMyAccount = `-- name: GetMyAccount :one
 select
     coalesce(picture, 'none') as picture,
-    username,
+    full_name,
     email,
-    coalesce(about, '') as about,
-    coalesce(location, '') as location,
-    coalesce(looking_for, '') as looking_for
+    phone
 from users
 where id = $1
 `
 
 type GetMyAccountRow struct {
-	Picture    string `json:"picture"`
-	Username   string `json:"username"`
-	Email      string `json:"email"`
-	About      string `json:"about"`
-	Location   string `json:"location"`
-	LookingFor string `json:"looking_for"`
+	Picture  string      `json:"picture"`
+	FullName string      `json:"full_name"`
+	Email    string      `json:"email"`
+	Phone    pgtype.Text `json:"phone"`
 }
 
 func (q *Queries) GetMyAccount(ctx context.Context, id uuid.UUID) (GetMyAccountRow, error) {
@@ -96,26 +80,22 @@ func (q *Queries) GetMyAccount(ctx context.Context, id uuid.UUID) (GetMyAccountR
 	var i GetMyAccountRow
 	err := row.Scan(
 		&i.Picture,
-		&i.Username,
+		&i.FullName,
 		&i.Email,
-		&i.About,
-		&i.Location,
-		&i.LookingFor,
+		&i.Phone,
 	)
 	return i, err
 }
 
 const getUser = `-- name: GetUser :one
-select 
+select
     u.id,
-    u.username,
+    u.full_name,
     u.email,
     u.phone,
     u.picture,
-    u.gender,
-    u.is_verified,
-    u.last_login_at,
     u.status,
+    u.google_uid,
     u.created_at,
     u.updated_at
 from users u
@@ -123,17 +103,15 @@ where u.id = $1
 `
 
 type GetUserRow struct {
-	ID          uuid.UUID        `json:"id"`
-	Username    string           `json:"username"`
-	Email       string           `json:"email"`
-	Phone       pgtype.Text      `json:"phone"`
-	Picture     pgtype.Text      `json:"picture"`
-	Gender      NullGenderType   `json:"gender"`
-	IsVerified  bool             `json:"is_verified"`
-	LastLoginAt pgtype.Timestamp `json:"last_login_at"`
-	Status      UserStatus       `json:"status"`
-	CreatedAt   pgtype.Timestamp `json:"created_at"`
-	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+	ID        uuid.UUID        `json:"id"`
+	FullName  string           `json:"full_name"`
+	Email     string           `json:"email"`
+	Phone     pgtype.Text      `json:"phone"`
+	Picture   pgtype.Text      `json:"picture"`
+	Status    UserStatus       `json:"status"`
+	GoogleUid pgtype.Text      `json:"google_uid"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
 func (q *Queries) GetUser(ctx context.Context, userID uuid.UUID) (GetUserRow, error) {
@@ -141,14 +119,12 @@ func (q *Queries) GetUser(ctx context.Context, userID uuid.UUID) (GetUserRow, er
 	var i GetUserRow
 	err := row.Scan(
 		&i.ID,
-		&i.Username,
+		&i.FullName,
 		&i.Email,
 		&i.Phone,
 		&i.Picture,
-		&i.Gender,
-		&i.IsVerified,
-		&i.LastLoginAt,
 		&i.Status,
+		&i.GoogleUid,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -188,77 +164,46 @@ func (q *Queries) UpdateGoogleDetails(ctx context.Context, arg UpdateGoogleDetai
 	return id, err
 }
 
-const updateLastLogin = `-- name: UpdateLastLogin :exec
-update users set last_login_at = (current_timestamp at time zone 'utc') where id = $1
-`
-
-func (q *Queries) UpdateLastLogin(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, updateLastLogin, id)
-	return err
-}
-
 const updateMyAccount = `-- name: UpdateMyAccount :one
 update users
 set
-    username = case
-        when $1 is null or nullif($1::text, '') is null then username
+    full_name = case
+        when $1 is null or nullif($1::text, '') is null then full_name
         else $1::text
     end,
-    about = case
-        when $2 is null then about
+    phone = case
+        when $2 is null then phone
         else nullif($2::text, '')
-    end,
-    location = case
-        when $3 is null then location
-        else nullif($3::text, '')
-    end,
-    looking_for = case
-        when $4 is null then looking_for
-        else nullif($4::text, '')
     end
-where id = $5
+where id = $3
 returning
     coalesce(picture, 'none') as picture,
-    username,
+    full_name,
     email,
-    coalesce(about, '') as about,
-    coalesce(location, '') as location,
-    coalesce(looking_for, '') as looking_for
+    phone
 `
 
 type UpdateMyAccountParams struct {
-	Username   pgtype.Text `json:"username"`
-	About      pgtype.Text `json:"about"`
-	Location   pgtype.Text `json:"location"`
-	LookingFor pgtype.Text `json:"looking_for"`
-	ID         uuid.UUID   `json:"id"`
+	FullName pgtype.Text `json:"full_name"`
+	Phone    pgtype.Text `json:"phone"`
+	ID       uuid.UUID   `json:"id"`
 }
 
 type UpdateMyAccountRow struct {
-	Picture    string `json:"picture"`
-	Username   string `json:"username"`
-	Email      string `json:"email"`
-	About      string `json:"about"`
-	Location   string `json:"location"`
-	LookingFor string `json:"looking_for"`
+	Picture  string      `json:"picture"`
+	FullName string      `json:"full_name"`
+	Email    string      `json:"email"`
+	Phone    pgtype.Text `json:"phone"`
 }
 
 func (q *Queries) UpdateMyAccount(ctx context.Context, arg UpdateMyAccountParams) (UpdateMyAccountRow, error) {
-	row := q.db.QueryRow(ctx, updateMyAccount,
-		arg.Username,
-		arg.About,
-		arg.Location,
-		arg.LookingFor,
-		arg.ID,
-	)
+	row := q.db.QueryRow(ctx, updateMyAccount, arg.FullName, arg.Phone, arg.ID)
 	var i UpdateMyAccountRow
 	err := row.Scan(
 		&i.Picture,
-		&i.Username,
+		&i.FullName,
 		&i.Email,
-		&i.About,
-		&i.Location,
-		&i.LookingFor,
+		&i.Phone,
 	)
 	return i, err
 }

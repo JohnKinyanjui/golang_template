@@ -1,10 +1,8 @@
 package accounts_service
 
 type MyAccount struct {
-	Picture    string `json:"picture"`
-	Username   string `json:"username"`
-	Email      string `json:"email"`
-	About      string `json:"about"`
-	Location   string `json:"location"`
-	LookingFor string `json:"looking_for"`
+	Picture  string `json:"picture"`
+	FullName string `json:"full_name"`
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
 }

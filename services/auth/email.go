@@ -27,12 +27,6 @@ func ContinueWithEmail(params EmailParams) (*AuthResult, *helpers.ResultError) {
 		return nil, helpers.Error("unable to authenticate by email", errors.New("invalid credentials"))
 	}
 
-	_, _ = db.PgConn.Exec(
-		ctx,
-		"update users set last_login_at = (current_timestamp at time zone 'utc') where id = $1",
-		id,
-	)
-
 	token, err := middlewares.GenerateJWT(id.String())
 	if err != nil {
 		log.Println("unable to generate session:", err)
