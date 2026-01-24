@@ -1,14 +1,8 @@
 -- name: GetUser :one
 select
-    u.id,
-    u.full_name,
-    u.email,
-    u.phone,
-    u.picture,
-    u.status,
-    u.google_uid,
-    u.created_at,
-    u.updated_at
+    u.id, u.full_name, u.email, u.phone,
+    u.picture, u.status, u.google_uid,
+    u.created_at, u.updated_at
 from users u
 where u.id = @user_id;
 
@@ -31,15 +25,6 @@ values (
     crypt(@password::text, gen_salt('bf'))
 )
 returning id;
-
--- name: GetMyAccount :one
-select
-    coalesce(picture, 'none') as picture,
-    full_name,
-    email,
-    phone
-from users
-where id = @id;
 
 -- name: UpdateMyAccount :one
 update users

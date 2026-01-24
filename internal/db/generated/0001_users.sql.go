@@ -58,46 +58,11 @@ func (q *Queries) CreateUserWithEmail(ctx context.Context, arg CreateUserWithEma
 	return id, err
 }
 
-const getMyAccount = `-- name: GetMyAccount :one
-select
-    coalesce(picture, 'none') as picture,
-    full_name,
-    email,
-    phone
-from users
-where id = $1
-`
-
-type GetMyAccountRow struct {
-	Picture  string      `json:"picture"`
-	FullName string      `json:"full_name"`
-	Email    string      `json:"email"`
-	Phone    pgtype.Text `json:"phone"`
-}
-
-func (q *Queries) GetMyAccount(ctx context.Context, id uuid.UUID) (GetMyAccountRow, error) {
-	row := q.db.QueryRow(ctx, getMyAccount, id)
-	var i GetMyAccountRow
-	err := row.Scan(
-		&i.Picture,
-		&i.FullName,
-		&i.Email,
-		&i.Phone,
-	)
-	return i, err
-}
-
 const getUser = `-- name: GetUser :one
 select
-    u.id,
-    u.full_name,
-    u.email,
-    u.phone,
-    u.picture,
-    u.status,
-    u.google_uid,
-    u.created_at,
-    u.updated_at
+    u.id, u.full_name, u.email, u.phone,
+    u.picture, u.status, u.google_uid,
+    u.created_at, u.updated_at
 from users u
 where u.id = $1
 `
